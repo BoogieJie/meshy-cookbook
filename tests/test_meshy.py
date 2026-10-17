@@ -224,11 +224,12 @@ class ClientTests(unittest.TestCase):
         script = ROOT / "examples/04-photos-to-product-model/python/main.py"
         done = {"id": "model-id", "status": "SUCCEEDED", "progress": 100, "consumed_credits": 30,
                 "model_urls": {"glb": "https://example.invalid/glb", "usdz": "https://example.invalid/usdz"}}
-        with patch.object(Meshy, "__init__", return_value=None), patch.object(Meshy, "create", return_value="model-id"), \
-                patch.object(Meshy, "wait", return_value=done), patch.object(Meshy, "download") as download, \
-                patch.object(sys, "argv", [str(script)]), patch("builtins.print"):
-            runpy.run_path(str(script), run_name="__main__")
-        self.assertEqual([call.args[1].name for call in download.call_args_list], ["armchair.glb", "armchair.usdz"])
+        for renders in ({}, {"thumbnail_urls": None}):
+            with self.subTest(renders=renders), patch.object(Meshy, "__init__", return_value=None), \
+                    patch.object(Meshy, "create", return_value="model-id"), patch.object(Meshy, "wait", return_value={**done, **renders}), \
+                    patch.object(Meshy, "download") as download, patch.object(sys, "argv", [str(script)]), patch("builtins.print"):
+                runpy.run_path(str(script), run_name="__main__")
+                self.assertEqual([call.args[1].name for call in download.call_args_list], ["armchair.glb", "armchair.usdz"])
 
     def test_invalid_inputs_fail_before_client_construction(self):
         cases = [("02-image-to-low-poly-prop", ["missing.png", value]) for value in ["NaN", "2.5", "99", "15001", "Infinity"]]

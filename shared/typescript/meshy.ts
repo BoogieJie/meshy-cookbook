@@ -200,6 +200,8 @@ export class Meshy {
       } finally {
         await rm(temporary, { force: true });
       }
+    } catch (error) {
+      throw idle.signal.aborted ? idle.signal.reason : error; // say why, not just "aborted"
     } finally {
       clearTimeout(timer);
     }

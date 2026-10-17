@@ -240,7 +240,7 @@ test("download that stalls past the idle timeout fails and keeps the previous fi
     if (++pulls === 1) controller.enqueue(new TextEncoder().encode("partial"));
     else return new Promise(() => {});
   } }));
-  await assert.rejects(new Meshy("offline-test", "/nonexistent/.env").download("https://example.invalid/signed", dest, 50), /abort|no data/i);
+  await assert.rejects(new Meshy("offline-test", "/nonexistent/.env").download("https://example.invalid/signed", dest, 50), /no data for 0.05 s/);
   assert.equal(await readFile(dest, "utf8"), "previous");
   assert.deepEqual(await readdir(output), ["model.glb"]);
 }));
