@@ -115,6 +115,24 @@ class ResumeTests(unittest.TestCase):
             constructor.assert_not_called()
         self.assertEqual(self.client.create.call_count, 1)
 
+    def test_refused_post_clears_the_marker_so_resume_creates_that_stage(self):
+        self.client.create.side_effect = ["concept-id", hero.MeshyAPIError(402, "Insufficient credits")]
+        with patch("builtins.print"), self.assertRaises(hero.MeshyAPIError):
+            hero.run("A chest", output=self.output, client=self.client)
+        state = json.loads((self.output / "run.json").read_text())
+        self.assertEqual((state["concept_task_id"], state["model_task_id"], state["creating"]), ("concept-id", None, None))
+        self.client.create.side_effect = ["model-id"]
+        with patch("builtins.print"):
+            hero.run(resume=True, output=self.output, client=self.client)
+        self.assertEqual(self.client.create.call_count, 3)
+
+    def test_server_error_keeps_the_marker(self):
+        self.client.create.side_effect = hero.MeshyAPIError(500, "Internal error")
+        with self.assertRaises(hero.MeshyAPIError):
+            hero.run("A chest", output=self.output, client=self.client)
+        with self.assertRaisesRegex(ValueError, "outcome.*unknown"):
+            hero.run(resume=True, output=self.output, client=self.client)
+
     def test_invalid_state_and_prompt_rejected_before_client(self):
         cases = [
             {"version": True}, {"prompt": ""}, {"concept_task_id": 3},
@@ -171,6 +189,12 @@ class ClientTests(unittest.TestCase):
         with self.assertRaises(requests.ConnectionError):
             self.client.create("image-to-3d", {})
         self.client.session.post.assert_called_once()
+
+    def test_only_a_4xx_other_than_408_is_a_refusal(self):
+        for status in (400, 401, 402, 403, 404, 422, 429):
+            self.assertTrue(MeshyAPIError(status, "").refused, status)
+        for status in (408, 500, 502, 503):
+            self.assertFalse(MeshyAPIError(status, "").refused, status)
 
     def test_failed_stream_preserves_previous_download(self):
         def chunks(**kwargs):

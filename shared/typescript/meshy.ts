@@ -65,6 +65,11 @@ export class MeshyAPIError extends Error {
     super(`Meshy API returned ${status}: ${body}`);
     this.name = "MeshyAPIError";
   }
+
+  /** A 4xx other than 408: Meshy rejected the request, so a POST created no task and charged nothing. */
+  get refused(): boolean {
+    return this.status >= 400 && this.status < 500 && this.status !== 408;
+  }
 }
 
 /** Task ended FAILED or CANCELED. Carries the task and `task_error.message`. */

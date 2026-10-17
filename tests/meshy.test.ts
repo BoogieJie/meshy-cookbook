@@ -121,6 +121,34 @@ test("an unknown POST outcome cannot create a duplicate on resume", async () => 
   assert.equal(calls, 1);
 }));
 
+test("a refused POST clears the creating marker so resume creates that stage", async (context) => directory(async (output) => {
+  context.mock.method(console, "log", () => {});
+  const client = fakeClient();
+  const create = client.create;
+  client.create = async (endpoint: string, payload: Record<string, unknown>) => {
+    if (endpoint === "image-to-3d") throw new MeshyAPIError(402, "Insufficient credits");
+    return create(endpoint, payload);
+  };
+  await assert.rejects(run("A chest", false, output, client), MeshyAPIError);
+  const state = JSON.parse(await readFile(join(output, "run.json"), "utf8"));
+  assert.deepEqual([state.concept_task_id, state.model_task_id, state.creating], ["concept-id", null, null]);
+  client.create = create;
+  await run(undefined, true, output, client);
+  assert.deepEqual(client.created.map((call) => call.endpoint), ["text-to-image", "image-to-3d"]);
+}));
+
+test("a server error keeps the creating marker", async () => directory(async (output) => {
+  const client = fakeClient();
+  client.create = async () => { throw new MeshyAPIError(500, "Internal error"); };
+  await assert.rejects(run("A chest", false, output, client), MeshyAPIError);
+  await assert.rejects(run(undefined, true, output, client), /outcome.*unknown/);
+}));
+
+test("only a 4xx other than 408 counts as a refused request", () => {
+  for (const status of [400, 401, 402, 403, 404, 422, 429]) assert.equal(new MeshyAPIError(status, "").refused, true, String(status));
+  for (const status of [408, 500, 502, 503]) assert.equal(new MeshyAPIError(status, "").refused, false, String(status));
+});
+
 test("invalid checkpoint, changed prompt and accidental new run fail before opening a client", async () => directory(async (output) => {
   const badStates = [ { version: true }, { prompt: "" }, { concept_task_id: 3 }, { concept_task_id: null },
     { model_task_id: "bad/id" }, { creating: "anything" }, { creating: "model" }, { extra: "secret" } ];

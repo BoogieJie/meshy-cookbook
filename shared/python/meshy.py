@@ -27,6 +27,11 @@ class MeshyAPIError(Exception):
         self.status = status
         self.body = body
 
+    @property
+    def refused(self) -> bool:
+        """A 4xx other than 408: Meshy rejected the request, so a POST created no task and charged nothing."""
+        return 400 <= self.status < 500 and self.status != 408
+
 
 class MeshyTaskError(Exception):
     """Task ended FAILED or CANCELED. Carries the task and `task_error.message`."""

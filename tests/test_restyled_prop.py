@@ -17,11 +17,11 @@ restyled = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(restyled)
 
 MODEL_PAYLOAD = {
-    "model_type": "smart-topology", "target_polycount": 1000,
+    "model_type": "smart-topology", "ai_model": "meshy-t2", "target_polycount": 1000,
     "should_texture": False, "target_formats": ["glb"],
 }
 RETEXTURE_PAYLOAD = {
-    "input_task_id": "model-id", "text_style_prompt": restyled.SAMPLE_PROMPT,
+    "input_task_id": "model-id", "ai_model": "meshy-7", "text_style_prompt": restyled.SAMPLE_PROMPT,
     "enable_original_uv": False, "enable_pbr": True, "target_formats": ["glb"],
 }
 TEXTURE_FILES = ["base-color.png", "metallic.png", "roughness.png", "normal.png"]
@@ -109,6 +109,24 @@ class RestyledPropTests(unittest.TestCase):
                 restyled.run(resume=True, output=self.output)
             constructor.assert_not_called()
         self.assertEqual(self.client.create.call_count, 1)
+
+    def test_refused_post_clears_the_marker_so_resume_creates_that_stage(self):
+        self.client.create.side_effect = ["model-id", restyled.MeshyAPIError(402, "Insufficient credits")]
+        with patch("builtins.print"), self.assertRaises(restyled.MeshyAPIError):
+            restyled.run(output=self.output, client=self.client)
+        state = json.loads((self.output / "run.json").read_text())
+        self.assertEqual((state["model_task_id"], state["retexture_task_id"], state["creating"]), ("model-id", None, None))
+        self.client.create.side_effect = ["retexture-id"]
+        with patch("builtins.print"):
+            restyled.run(resume=True, output=self.output, client=self.client)
+        self.assertEqual(self.client.create.call_count, 3)
+
+    def test_server_error_keeps_the_marker(self):
+        self.client.create.side_effect = restyled.MeshyAPIError(500, "Internal error")
+        with self.assertRaises(restyled.MeshyAPIError):
+            restyled.run(output=self.output, client=self.client)
+        with self.assertRaisesRegex(ValueError, "outcome.*unknown"):
+            restyled.run(resume=True, output=self.output, client=self.client)
 
     def test_invalid_state_inputs_and_new_run_rejected_before_client(self):
         cases = [
