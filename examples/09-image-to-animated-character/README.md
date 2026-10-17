@@ -304,7 +304,7 @@ The three clips are named `Idle` (4.0 seconds), `Regular_Jump` (1.9 seconds) and
 | Parameter | We use | Why |
 |---|---|---|
 | [`action_ids`](https://docs.meshy.ai/en/api/animation#create-an-animation-task) (animations) | `[0, 466, 4]` | One to ten unique ids from the library, 3 credits each; the clips keep this order. A single `action_id` returns one clip instead, and `motion_task_id` applies a Text to Motion clip |
-| [`post_process`](https://docs.meshy.ai/en/api/animation#create-an-animation-task) | omitted | `{"operation_type": "change_fps", "fps": 60}` re-times the merged file (24, 25, 30 or 60), `fbx2usdz` adds a USDZ and `extract_armature` an armature-only FBX |
+| [`post_process`](https://docs.meshy.ai/en/api/animation#create-an-animation-task) | omitted | `{"operation_type": "change_fps", "fps": 60}` adds a re-timed FBX copy of the merged file at `result.processed_animation_fps_fbx_url` (24, 25, 30 or 60) while the GLB and FBX keep their frame rate, `fbx2usdz` adds a USDZ and `extract_armature` an armature-only FBX |
 | [`rig_task_id`](https://docs.meshy.ai/en/api/animation#create-an-animation-task) | the rigging task ID | Must be a succeeded rigging task; Meshy keeps it for three days |
 | [`height_meters`](https://docs.meshy.ai/en/api/rigging#create-a-rigging-task) (rigging) | `1.8` | Character height in meters. The API default is 1.7 |
 | [`pose_mode`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task), [`target_polycount`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task) (image-to-3d) | `"a-pose"`, `30000` | The settings the rigger needs, explained in [cookbook 05](../05-image-to-rigged-character/) |

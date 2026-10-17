@@ -5,6 +5,7 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, test } from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { Meshy, MeshyAPIError, MeshyTaskError, MeshyTimeoutError, type Task } from "../shared/typescript/meshy.js";
 import { run } from "../examples/03-text-to-hero-prop/typescript/main.js";
@@ -74,7 +75,7 @@ test("resume concept creates only the missing model", async () => directory(asyn
   const client = fakeClient();
   await run(undefined, true, output, client);
   assert.deepEqual(client.created, [{ endpoint: "image-to-3d", payload: {
-    input_task_id: "concept-id", geometry_resolution: "4k", should_texture: true,
+    ai_model: "meshy-7.1", input_task_id: "concept-id", geometry_resolution: "4k", should_texture: true,
     enable_pbr: true, texture_resolution: "4k", target_formats: ["glb"],
   } }]);
   assert.equal(JSON.parse(await readFile(join(output, "run.json"), "utf8")).model_task_id, "model-id");
@@ -219,6 +220,37 @@ test("download streams without auth and preserves previous file on stream failur
   assert.equal(await readFile(dest, "utf8"), "complete");
 }));
 
+test("download outlasts the idle timeout while data keeps arriving", async () => directory(async (output) => {
+  const dest = join(output, "model.glb");
+  let sent = 0;
+  globalThis.fetch = async () => new Response(new ReadableStream({ async pull(controller) {
+    await sleep(40);
+    if (++sent <= 5) controller.enqueue(new TextEncoder().encode(`chunk${sent}`));
+    else controller.close();
+  } }));
+  await new Meshy("offline-test", "/nonexistent/.env").download("https://example.invalid/signed", dest, 100);
+  assert.equal(await readFile(dest, "utf8"), "chunk1chunk2chunk3chunk4chunk5");
+}));
+
+test("download that stalls past the idle timeout fails and keeps the previous file", async () => directory(async (output) => {
+  const dest = join(output, "model.glb");
+  await writeFile(dest, "previous");
+  let pulls = 0;
+  globalThis.fetch = async () => new Response(new ReadableStream({ pull(controller) {
+    if (++pulls === 1) controller.enqueue(new TextEncoder().encode("partial"));
+    else return new Promise(() => {});
+  } }));
+  await assert.rejects(new Meshy("offline-test", "/nonexistent/.env").download("https://example.invalid/signed", dest, 50), /abort|no data/i);
+  assert.equal(await readFile(dest, "utf8"), "previous");
+  assert.deepEqual(await readdir(output), ["model.glb"]);
+}));
+
+test("a .webp input becomes a webp data URI", async () => directory(async (output) => {
+  const image = join(output, "photo.WEBP");
+  await writeFile(image, "RIFF....WEBP");
+  assert.match(await Meshy.dataUri(image), /^data:image\/webp;base64,/);
+}));
+
 test("invalid CLI inputs fail before a client can be opened", async () => directory(async (cwd) => {
   const cases: [string, string[]][] = [
     ...["NaN", "Infinity", "2.5", "99", "15001"].map((value): [string, string[]] => ["02-image-to-low-poly-prop", ["missing.png", value]]),
@@ -230,7 +262,7 @@ test("invalid CLI inputs fail before a client can be opened", async () => direct
       cwd, env: { ...process.env, MESHY_API_KEY: "" }, encoding: "utf8",
     });
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /Face count|PNG or JPEG|ENOENT/);
+    assert.match(result.stderr, /Face count|PNG or JPEG paths|PNG, JPEG or WebP|ENOENT/);
     assert.doesNotMatch(result.stderr, /MESHY_API_KEY is not set/);
   }
 }));

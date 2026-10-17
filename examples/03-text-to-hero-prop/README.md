@@ -221,12 +221,13 @@ client.download(concept["image_urls"][0], output / "hero-prop-concept.png")
 
    Leave `generate_multi_view` off: this workflow requires a concept task that produces one image.
 
-3. **Chain the image into an Ultra 4K image-to-3d task.** `client.create` POSTs to `/openapi/v1/image-to-3d` with `input_task_id` pointing at the text-to-image task, so the image never leaves Meshy.
+3. **Chain the image into an Ultra 4K image-to-3d task.** `client.create` POSTs to `/openapi/v1/image-to-3d` with `input_task_id` pointing at the text-to-image task, so the image never leaves Meshy, and with `ai_model` set to `meshy-7.1`, which `geometry_resolution: "4k"` requires.
 
 ```python
 task_id = client.create(
     "image-to-3d",
     {
+        "ai_model": "meshy-7.1",
         "input_task_id": concept_id,
         "geometry_resolution": "4k",
         "should_texture": True,
@@ -254,13 +255,14 @@ client.download(task["thumbnail_url"], output / "hero-prop-thumbnail.png")
 | Parameter | We use | Why |
 |---|---|---|
 | [`ai_model`](https://docs.meshy.ai/en/api/text-to-image#create-a-text-to-image-task) (text-to-image) | `"gpt-image-2-5-sunburst"` | 9 credits per image. `"nano-banana"` costs 3 and is fine for a first look |
+| [`ai_model`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task) (image-to-3d) | `"meshy-7.1"` | Meshy 7.1, which `geometry_resolution: "4k"` requires and the recorded runs used. Set here so the request stays valid if the API default moves |
 | [`prompt`](https://docs.meshy.ai/en/api/text-to-image#create-a-text-to-image-task) | `state["prompt"]` | Name the prop, list its materials, and ask for a three-quarter view. Leave the background to the next parameter |
 | [`remove_background`](https://docs.meshy.ai/en/api/text-to-image#create-a-text-to-image-task) | `true` | Returns a transparent PNG of just the prop, so the 3D stage gets a clean cut-out |
 | [`input_task_id`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task) | the text-to-image task id | Chains the two tasks inside Meshy. Swap in `image_url` with a data URI of your own PNG to skip the prompt stage, as the [character recipe](../01-image-to-3d-character/) does |
-| [`geometry_resolution`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task) | `"4k"` | Controls geometry detail: `standard`, `2k`, or `4k`. Either Ultra setting adds an estimated 5 credits. Requires Meshy 7.1 and a single input image. |
-| [`should_texture`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task) | `true` | You want a textured model, not a gray mesh. Set `false` for geometry only, which drops the task to 25 credits with Ultra |
+| [`geometry_resolution`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task) | `"4k"` | Controls geometry detail: `standard`, `2k`, or `4k`. Either Ultra setting adds an estimated 5 credits. `4k` requires `ai_model: "meshy-7.1"` and a single input image; `2k` works with any Meshy 7 model, `latest` included. |
+| [`should_texture`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task) | `true` | You want a textured model, not a gray mesh. For geometry only, set it and `enable_pbr` to `false`, which drops the task to 25 credits with Ultra; `enable_pbr: true` without textures returns `400` |
 | [`enable_pbr`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task) | `true` | Adds metallic, roughness and normal maps that Blender wires into the Principled BSDF on import. Needs `should_texture: true` |
 | [`texture_resolution`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task) | `"4k"` | Sets texture resolution. 4K uses the same credit cost as 2K; 8K adds an estimated 5 credits. Larger textures increase file size. |
 | [`target_formats`](https://docs.meshy.ai/en/api/image-to-3d#create-an-image-to-3d-task) | `["glb"]` | Add `"fbx"` for Unity or Unreal |
 
-`ai_model` is omitted, so the standard 3D task uses the API’s current default. See the sample record above for the model used in the recorded runs.
+The 3D task sets `ai_model` to `"meshy-7.1"`, the model of the recorded runs, so it keeps running that model and stays valid with `geometry_resolution: "4k"` if the API default changes.

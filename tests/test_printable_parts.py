@@ -165,7 +165,7 @@ class PrintablePartsTests(unittest.TestCase):
             constructor.assert_not_called()
 
     def test_bad_image_fails_before_client_and_checkpoint(self):
-        for image, message in [("missing.png", "does not exist"), ("wrong.gif", "PNG or JPEG")]:
+        for image, message in [("missing.png", "does not exist"), ("wrong.gif", "PNG, JPEG or WebP")]:
             with self.subTest(image=image), patch.object(recipe, "Meshy", wraps=recipe.Meshy) as constructor:
                 with self.assertRaisesRegex(ValueError, message):
                     recipe.run(image, output=self.output)

@@ -123,7 +123,7 @@ test("a server error keeps the creating marker", async () => directory(async (ou
 }));
 
 test("invalid checkpoint, changed inputs, bad input and accidental new run fail before opening a client", async () => directory(async (output) => {
-  await assert.rejects(run("wrong.gif", undefined, false, output), /PNG or JPEG/);
+  await assert.rejects(run("wrong.gif", undefined, false, output), /PNG, JPEG or WebP/);
   await assert.rejects(run("missing.png", undefined, false, output), /ENOENT|does not exist/);
   for (const polycount of [99, 300001, 2.5, Number.NaN]) await assert.rejects(run(undefined, polycount, false, output), /100 to 300000/);
   const badStates = [ { version: true }, { image: "" }, { polycount: 99 }, { polycount: "20000" }, { model_task_id: null }, { remesh_task_id: "bad/id" },

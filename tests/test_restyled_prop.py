@@ -148,7 +148,7 @@ class RestyledPropTests(unittest.TestCase):
             constructor.assert_not_called()
 
     def test_bad_inputs_fail_before_client_and_checkpoint(self):
-        cases = [(None, "missing.png", "does not exist"), (None, "wrong.gif", "PNG or JPEG"), ("  ", None, "empty"), ("x" * 801, None, "800 characters")]
+        cases = [(None, "missing.png", "does not exist"), (None, "wrong.gif", "PNG, JPEG or WebP"), ("  ", None, "empty"), ("x" * 801, None, "800 characters")]
         for prompt, image, message in cases:
             with self.subTest(prompt=prompt, image=image), patch.object(restyled, "Meshy", wraps=restyled.Meshy) as constructor:
                 with self.assertRaisesRegex(ValueError, message):

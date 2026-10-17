@@ -112,6 +112,7 @@ def run(prompt: str | None = None, resume: bool = False, output: Path = OUTPUT, 
             task_id = client.create(
                 "image-to-3d",
                 {
+                    "ai_model": "meshy-7.1",
                     "input_task_id": concept_id,
                     "geometry_resolution": "4k",
                     "should_texture": True,

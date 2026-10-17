@@ -108,6 +108,7 @@ export async function run(prompt?: string, resume = false, output = OUTPUT, clie
     await client.download(concept.image_urls[0], join(output, "hero-prop-concept.png"));
     conceptCredits = concept.consumed_credits;
     taskId = await createStage(checkpoint, state, "model", () => client.create("image-to-3d", {
+      ai_model: "meshy-7.1",
       input_task_id: conceptId,
       geometry_resolution: "4k",
       should_texture: true,

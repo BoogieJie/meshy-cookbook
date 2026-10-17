@@ -123,7 +123,7 @@ test("a server error keeps the creating marker", async () => directory(async (ou
 }));
 
 test("invalid checkpoint, changed inputs, bad input and accidental new run fail before opening a client", async () => directory(async (output) => {
-  await assert.rejects(run("wrong.gif", undefined, false, output), /PNG or JPEG/);
+  await assert.rejects(run("wrong.gif", undefined, false, output), /PNG, JPEG or WebP/);
   await assert.rejects(run("missing.png", undefined, false, output), /ENOENT|does not exist/);
   for (const style of ["vivid", "Realistic", ""]) await assert.rejects(run(undefined, style, false, output), /realistic or cartoon/);
   const badStates = [ { version: true }, { image: "" }, { style: "vivid" }, { style: null }, { model_task_id: null }, { print_task_id: "bad/id" },

@@ -140,7 +140,7 @@ class MultiColorPrintTests(unittest.TestCase):
             constructor.assert_not_called()
 
     def test_bad_inputs_fail_before_client_and_checkpoint(self):
-        cases = [("missing.png", None, "does not exist"), ("wrong.gif", None, "PNG or JPEG"), (None, "vivid", "realistic or cartoon"), (None, "Realistic", "realistic or cartoon")]
+        cases = [("missing.png", None, "does not exist"), ("wrong.gif", None, "PNG, JPEG or WebP"), (None, "vivid", "realistic or cartoon"), (None, "Realistic", "realistic or cartoon")]
         for image, style, message in cases:
             with self.subTest(image=image, style=style), patch.object(recipe, "Meshy", wraps=recipe.Meshy) as constructor:
                 with self.assertRaisesRegex(ValueError, message):

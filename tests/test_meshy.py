@@ -70,7 +70,7 @@ class ResumeTests(unittest.TestCase):
         self.client.create.side_effect = ["model-id"]
         hero.run(resume=True, output=self.output, client=self.client)
         self.client.create.assert_called_once_with("image-to-3d", {
-            "input_task_id": "concept-id", "geometry_resolution": "4k",
+            "ai_model": "meshy-7.1", "input_task_id": "concept-id", "geometry_resolution": "4k",
             "should_texture": True, "enable_pbr": True, "texture_resolution": "4k", "target_formats": ["glb"],
         })
         self.assertEqual(json.loads((self.output / "run.json").read_text())["model_task_id"], "model-id")
@@ -213,6 +213,22 @@ class ClientTests(unittest.TestCase):
             self.assertEqual(dest.read_bytes(), b"previous")
             self.assertEqual(list(Path(directory).iterdir()), [dest])
             self.assertNotIn("headers", get.call_args.kwargs)
+
+    def test_webp_input_becomes_a_webp_data_uri(self):
+        with tempfile.TemporaryDirectory() as directory:
+            image = Path(directory) / "photo.WEBP"
+            image.write_bytes(b"RIFF\x00\x00\x00\x00WEBP")
+            self.assertTrue(Meshy.data_uri(image).startswith("data:image/webp;base64,"))
+
+    def test_product_model_without_renders_still_saves_its_files(self):
+        script = ROOT / "examples/04-photos-to-product-model/python/main.py"
+        done = {"id": "model-id", "status": "SUCCEEDED", "progress": 100, "consumed_credits": 30,
+                "model_urls": {"glb": "https://example.invalid/glb", "usdz": "https://example.invalid/usdz"}}
+        with patch.object(Meshy, "__init__", return_value=None), patch.object(Meshy, "create", return_value="model-id"), \
+                patch.object(Meshy, "wait", return_value=done), patch.object(Meshy, "download") as download, \
+                patch.object(sys, "argv", [str(script)]), patch("builtins.print"):
+            runpy.run_path(str(script), run_name="__main__")
+        self.assertEqual([call.args[1].name for call in download.call_args_list], ["armchair.glb", "armchair.usdz"])
 
     def test_invalid_inputs_fail_before_client_construction(self):
         cases = [("02-image-to-low-poly-prop", ["missing.png", value]) for value in ["NaN", "2.5", "99", "15001", "Infinity"]]

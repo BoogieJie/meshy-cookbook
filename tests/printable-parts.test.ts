@@ -148,7 +148,7 @@ test("a server error keeps the creating marker", async () => directory(async (ou
 }));
 
 test("invalid checkpoint, changed input, bad input and accidental new run fail before opening a client", async () => directory(async (output) => {
-  await assert.rejects(run("wrong.gif", false, output), /PNG or JPEG/);
+  await assert.rejects(run("wrong.gif", false, output), /PNG, JPEG or WebP/);
   await assert.rejects(run("missing.png", false, output), /ENOENT|does not exist/);
   const badStates = [ { version: true }, { image: "" }, { model_task_id: null }, { split_task_id: "bad/id" },
     { creating: "anything" }, { creating: "split" }, { creating: "check" }, { extra: "secret" } ];

@@ -169,7 +169,7 @@ class AnimatedCharacterTests(unittest.TestCase):
     def test_bad_image_or_actions_fail_before_client_and_checkpoint(self):
         for image in ["missing.png", "wrong.gif"]:
             with self.subTest(image=image), patch.object(animated, "Meshy", wraps=animated.Meshy) as constructor:
-                with self.assertRaisesRegex(ValueError, "PNG or JPEG|does not exist"):
+                with self.assertRaisesRegex(ValueError, "PNG, JPEG or WebP|does not exist"):
                     animated.run(None, image, output=self.output)
                 constructor.assert_not_called()
             self.assertFalse((self.output / "run.json").exists())

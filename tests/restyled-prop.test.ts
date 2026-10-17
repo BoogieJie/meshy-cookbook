@@ -129,7 +129,7 @@ test("a server error keeps the creating marker", async () => directory(async (ou
 }));
 
 test("invalid checkpoint, changed inputs, bad input and accidental new run fail before opening a client", async () => directory(async (output) => {
-  await assert.rejects(run(undefined, "wrong.gif", false, output), /PNG or JPEG/);
+  await assert.rejects(run(undefined, "wrong.gif", false, output), /PNG, JPEG or WebP/);
   await assert.rejects(run(undefined, "missing.png", false, output), /ENOENT|does not exist/);
   await assert.rejects(run("  ", undefined, false, output), /empty/);
   await assert.rejects(run("x".repeat(801), undefined, false, output), /800 characters/);
